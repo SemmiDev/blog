@@ -1,0 +1,10 @@
+version: '3'
+services:
+  postgres:
+    image: postgres:12-alpine
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_DB=blog
+    ports:
+      - "5432:5432"

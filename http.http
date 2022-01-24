@@ -1,0 +1,65 @@
+POST http://localhost:9090/auth/register
+Accept: application/json
+Content-Type: application/json
+
+{
+  "email": "sammidev@gmail.com"
+}
+
+###
+
+POST http://localhost:9090/auth/register?code=6782632645
+Accept: application/json
+Content-Type: application/json
+
+{
+  "name": "sammidev",
+  "password": "sammidev"
+}
+
+###
+
+POST http://localhost:9090/auth/authorize
+Accept: application/json
+Content-Type: application/json
+
+{
+  "email": "sammidev@gmail.com",
+  "password": "sammidev"
+}
+
+###
+
+POST http://localhost:9090/users/password/change
+Accept: application/json
+Content-Type: application/json
+Authorization: Bearer v2.local.cqHx08rWVJG6v4JjS1RFlJmqfgvQWe6cfIYtcNJNEfSK4PlpK6eBvx9lc7Z0F4Y9LU_rgELF9eDIYtmxA1_nBZ2w5JjpKMD2zfvryQNI74Zcy2j_yBUx1slAY9lvYGmKG9i7sc1Ywf0J2UklkWzMBAOI09R4lCxghGYlRYrvd5KPh1T9OKay07B-V1xrq6kc8FybA74oq6oTd8L9lofbSOnqXEgX4vkB3ABQzVn2HdckdgKXYdELeGjwVDSPwn1RSKPLR6pYX58mEHKgfCBwFpqFTrlMmyY.bnVsbA
+
+{
+  "old_password": "sammidev",
+  "new_password": "sammidev123",
+  "new_confirm_password": "sammidev123"
+
+
+}
+
+###
+
+POST http://localhost:9090/auth/password/reset
+Accept: application/json
+Content-Type: application/json
+
+{
+  "email": "sammidev@gmail.com"
+}
+
+###
+
+POST http://localhost:9090/auth/password/reset?code=7108745620
+Accept: application/json
+Content-Type: application/json
+
+{
+  "new_password": "sammidev123",
+  "new_confirm_password": "sammidev123"
+}
