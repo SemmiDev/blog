@@ -1,4 +1,4 @@
-### Exploring Domain Driven Design In Go
+### Learn Go
 
 ##### Features that have been made
 - `Registering users`
