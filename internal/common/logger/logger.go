@@ -83,7 +83,7 @@ func (l *Logger) Warn() *zerolog.Event {
 	return l.logger.Warn()
 }
 
-// Error starts a new message with error level.
+// Error starts a new message with helper level.
 //
 // You must call Msg on the returned event in order to send the event.
 func (l *Logger) Error() *zerolog.Event {

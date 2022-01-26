@@ -3,7 +3,7 @@ package postgresql
 import (
 	"context"
 	"errors"
-	"github.com/SemmiDev/blog/internal/user/domain"
+	"github.com/SemmiDev/blog/internal/user/entity"
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
@@ -15,7 +15,7 @@ func NewUserCommandPostgresql(DB *pgxpool.Pool) *UserCommandPostgresql {
 	return &UserCommandPostgresql{DB: DB}
 }
 
-func (u *UserCommandPostgresql) Save(ctx context.Context, arg *domain.User) <-chan error {
+func (u *UserCommandPostgresql) Save(ctx context.Context, arg *entity.User) <-chan error {
 	result := make(chan error)
 
 	go func() {
@@ -42,12 +42,44 @@ func (u *UserCommandPostgresql) Save(ctx context.Context, arg *domain.User) <-ch
 	return result
 }
 
-func (u *UserCommandPostgresql) UpdatePassword(ctx context.Context, arg *domain.User) <-chan error {
+func (u *UserCommandPostgresql) UpdatePassword(ctx context.Context, arg *entity.User) <-chan error {
 	result := make(chan error)
 
 	go func() {
 		_, err := u.DB.Exec(ctx, `UPDATE users SET password = $2 WHERE id = $1`,
 			arg.ID, arg.Password)
+		if err != nil {
+			result <- err
+		}
+
+		result <- nil
+		close(result)
+	}()
+
+	return result
+}
+
+func (u *UserCommandPostgresql) UpdateBio(ctx context.Context, arg *entity.User) <-chan error {
+	result := make(chan error)
+
+	go func() {
+		_, err := u.DB.Exec(ctx, `UPDATE users SET bio = $2 WHERE id = $1`, arg.ID, arg.Bio)
+		if err != nil {
+			result <- err
+		}
+
+		result <- nil
+		close(result)
+	}()
+
+	return result
+}
+
+func (u *UserCommandPostgresql) UpdateImage(ctx context.Context, arg *entity.User) <-chan error {
+	result := make(chan error)
+
+	go func() {
+		_, err := u.DB.Exec(ctx, `UPDATE users SET image = $2 WHERE id = $1`, arg.ID, arg.Image)
 		if err != nil {
 			result <- err
 		}

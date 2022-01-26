@@ -11,6 +11,7 @@ var (
 	ErrExpiredToken = errors.New("token has expired")
 )
 
+// Payload represents the token payload.
 type Payload struct {
 	ID        string    `json:"id"`
 	Email     string    `json:"email"`
@@ -18,6 +19,7 @@ type Payload struct {
 	ExpiredAt time.Time `json:"expired_at"`
 }
 
+// NewPayload creates a new payload.
 func NewPayload(email string, duration time.Duration) (*Payload, error) {
 	tokenID := uuid.NewString()
 	payload := &Payload{
@@ -29,6 +31,7 @@ func NewPayload(email string, duration time.Duration) (*Payload, error) {
 	return payload, nil
 }
 
+// Valid checks if the payload is valid.
 func (payload *Payload) Valid() error {
 	if time.Now().After(payload.ExpiredAt) {
 		return ErrExpiredToken

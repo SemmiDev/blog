@@ -6,14 +6,16 @@ import (
 	"time"
 )
 
-var Config Configuration
+var Env Configuration
 
 type Configuration struct {
-	DBDriver            string        `mapstructure:"DB_DRIVER"`
-	DBSource            string        `mapstructure:"DB_SOURCE"`
-	ServerAddress       string        `mapstructure:"SERVER_ADDRESS"`
-	TokenSymmetricKey   string        `mapstructure:"TOKEN_SYMMETRIC_KEY"`
-	AccessTokenDuration time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
+	DBDriver               string        `mapstructure:"DB_DRIVER"`
+	DBSource               string        `mapstructure:"DB_SOURCE"`
+	ServerAddress          string        `mapstructure:"SERVER_ADDRESS"`
+	TokenSymmetricKey      string        `mapstructure:"TOKEN_SYMMETRIC_KEY"`
+	AccessTokenDuration    time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
+	FirebaseCredentialJSON string        `mapstructure:"FIREBASE_CREDENTIAL_JSON"`
+	FirebaseBucketName     string        `mapstructure:"FIREBASE_BUCKET_NAME"`
 }
 
 func LoadConfig(path string) {
@@ -26,5 +28,5 @@ func LoadConfig(path string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = viper.Unmarshal(&Config)
+	err = viper.Unmarshal(&Env)
 }

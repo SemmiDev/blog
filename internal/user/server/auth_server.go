@@ -1,181 +1,89 @@
 package server
 
 import (
-	"context"
-	"errors"
-	"fmt"
-	// load all configs
-	. "github.com/SemmiDev/blog/config"
+	"github.com/SemmiDev/blog/internal/user/helper"
+	"github.com/SemmiDev/blog/internal/user/service"
+
 	"github.com/SemmiDev/blog/internal/common/memory"
-	"github.com/SemmiDev/blog/internal/common/random"
-	"github.com/SemmiDev/blog/internal/user/command"
-	commandMemory "github.com/SemmiDev/blog/internal/user/command/memory"
-	commandPostgresql "github.com/SemmiDev/blog/internal/user/command/postgresql"
-	"github.com/SemmiDev/blog/internal/user/domain"
-	"github.com/SemmiDev/blog/internal/user/domain/service"
-	"github.com/SemmiDev/blog/internal/user/query"
 	queryMemory "github.com/SemmiDev/blog/internal/user/query/memory"
 	queryPostgresql "github.com/SemmiDev/blog/internal/user/query/postgresql"
-	"github.com/SemmiDev/blog/internal/user/storage"
+	commandMemory "github.com/SemmiDev/blog/internal/user/repository/memory"
+	commandPostgresql "github.com/SemmiDev/blog/internal/user/repository/postgresql"
 	"github.com/SemmiDev/blog/internal/user/token"
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"log"
 	"net/http"
-	"strings"
-	"time"
 )
 
+// AuthServer is the struct that contains UserService.
+// it will be used to interact with the service.
 type AuthServer struct {
-	UserCommand  command.UserCommand
-	TokenCommand command.TokenCommand
-	UserQuery    query.UserQuery
-	TokenQuery   query.TokenQuery
-	UserService  domain.UserService
-	TokenMaker   token.Maker
+	UserService service.UserService
 }
 
+// NewAuthServer creates a new AuthServer.
 func NewAuthServer(db *pgxpool.Pool, tokenMaker token.Maker) (*AuthServer, error) {
+	// for now, we're using memory repository for stores code verification.
+	// in the future, we'll use redis, or other stores.
 	m := memory.New()
-	userServer := &AuthServer{
-		UserCommand:  commandPostgresql.NewUserCommandPostgresql(db),
-		TokenCommand: commandMemory.NewTokenCommandMemory(m),
+
+	userServiceImpl := &service.UserServiceImpl{
 		UserQuery:    queryPostgresql.NewUserQueryPostgresql(db),
 		TokenQuery:   queryMemory.NewTokenQueryMemory(m),
+		UserCommand:  commandPostgresql.NewUserCommandPostgresql(db),
+		TokenCommand: commandMemory.NewTokenCommandMemory(m),
 		TokenMaker:   tokenMaker,
 	}
 
-	userServer.UserService = service.UserServiceImpl{UserQuery: userServer.UserQuery}
-	return userServer, nil
+	return &AuthServer{UserService: userServiceImpl}, nil
 }
 
+// Mount mounts the auth server to the fiber app.
 func (s *AuthServer) Mount(r fiber.Router) {
-	r.Post("/register", s.Register)
-	r.Post("/authorize", s.Authorize)
-	r.Post("/password/reset", s.Reset)
+	r.Post("/register", s.RegisterHandler)
+	r.Post("/authorize", s.AuthorizeHandler)
+	r.Post("/password/reset", s.ResetPasswordHandler)
 }
 
-type RegisterReq struct {
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
-func (s *AuthServer) Register(c *fiber.Ctx) error {
-	var req RegisterReq
-	if err := c.BodyParser(&req); err != nil {
-		return Error(c, NewRequestValidationError(ParseFailed, "body"))
-	}
+// RegisterHandler handles the registration of a new user.
+// if the code in query param is empty,
+// it will send a new verification code to the user's email.
+// if the code in query param is not empty,
+// it will verify the code has been sent to the user's email,
+// and it will create a new user if user with email does not exist.
+// if user with email already exists, it will return an error.
+func (s *AuthServer) RegisterHandler(c *fiber.Ctx) error {
+	name := c.FormValue("name")
+	email := c.FormValue("email")
+	password := c.FormValue("password")
 
 	code := c.Query("code")
 	if code != "" {
-		if len(code) != 10 {
-			return Error(c, NewRequestValidationError(Invalid, "code"))
-		}
-		if !numberRegex.MatchString(code) {
-			return Error(c, NewRequestValidationError(Invalid, "code"))
-		}
-
-		tokenResult := <-s.TokenQuery.Find(code)
-		if tokenResult.Error != nil {
-			return Error(c, NewRequestValidationError(Invalid, "code"))
-		}
-
-		codeVerification, _ := tokenResult.Result.([]byte)
-		if codeVerification == nil {
-			return Error(c, NewRequestValidationError(Invalid, "code"))
-		}
-
-		extract := strings.Split(string(codeVerification), "|")
-		if extract[0] != code {
-			return Error(c, NewRequestValidationError(Invalid, "code"))
-		}
-
-		userAuth, err := s.RegisterNewUser(c.Context(), extract[1], req.Name, req.Password)
+		userAuth, err := s.UserService.RegisterNewUser(c.Context(), code, name, password)
 		if err != nil {
-			return Error(c, err)
+			return helper.Error(c, err)
 		}
-
-		err = <-s.TokenCommand.Delete(code)
-		if err != nil {
-			return Error(c, err)
-		}
-
 		return c.Status(http.StatusOK).JSON(fiber.Map{
 			"data": userAuth,
 		})
 	}
-
-	if req.Email == "" {
-		return Error(c, NewRequestValidationError(Required, "email"))
-	}
-	if !mailRegex.MatchString(req.Email) {
-		return Error(c, NewRequestValidationError(Invalid, "email"))
-	}
-
-	key := random.Codes(10)
-	value := fmt.Sprintf("%s|%s", key, req.Email)
-
-	log.Println(value)
-
-	err := <-s.TokenCommand.Set(key, []byte(value), 30*time.Minute)
+	err := s.UserService.SendVerificationCode(c.Context(), email, "registration")
 	if err != nil {
-		return Error(c, err)
+		return helper.Error(c, err)
 	}
-
 	return c.SendStatus(http.StatusOK)
 }
 
-func (s *AuthServer) RegisterNewUser(ctx context.Context, email, name, password string) (*storage.UserAuth, error) {
-	user, err := domain.CreateUser(email, name, password)
+// AuthorizeHandler handles user authorization/login
+// based on email and password.
+// it returns a token if user is authorized.
+func (s *AuthServer) AuthorizeHandler(c *fiber.Ctx) error {
+	email := c.FormValue("email")
+	password := c.FormValue("password")
+
+	userAuth, err := s.UserService.Authorize(c.Context(), email, password)
 	if err != nil {
-		return nil, err
-	}
-
-	err = <-s.UserCommand.Save(ctx, user)
-	if err != nil {
-		return nil, err
-	}
-
-	accessToken, _ := s.TokenMaker.CreateToken(user.Email, Config.AccessTokenDuration)
-
-	return &storage.UserAuth{
-		UserID:      user.ID,
-		Name:        user.Name,
-		Email:       user.Email,
-		NickName:    user.Nickname,
-		AccessToken: accessToken,
-	}, nil
-}
-
-type LoginReq struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
-func (s *AuthServer) Authorize(c *fiber.Ctx) error {
-	var req LoginReq
-	if err := c.BodyParser(&req); err != nil {
-		return Error(c, NewRequestValidationError(ParseFailed, "body"))
-	}
-
-	queryResult := <-s.UserQuery.FindByEmailAndPassword(c.Context(), req.Email, req.Password)
-	if queryResult.Error != nil {
-		return Error(c, queryResult.Error)
-	}
-
-	user, ok := queryResult.Result.(storage.User)
-	if !ok {
-		return Error(c, errors.New("error type assertion"))
-	}
-
-	accessToken, _ := s.TokenMaker.CreateToken(user.Email, Config.AccessTokenDuration)
-	userAuth := storage.UserAuth{
-		UserID:      user.ID,
-		Name:        user.Name,
-		Email:       user.Email,
-		NickName:    user.Nickname,
-		AccessToken: accessToken,
+		return helper.Error(c, err)
 	}
 
 	return c.Status(http.StatusOK).JSON(fiber.Map{
@@ -183,81 +91,27 @@ func (s *AuthServer) Authorize(c *fiber.Ctx) error {
 	})
 }
 
-type ResetPasswordReq struct {
-	Email              string `json:"email"`
-	NewPassword        string `json:"new_password"`
-	NewConfirmPassword string `json:"new_confirm_password"`
-}
-
-func (s *AuthServer) Reset(c *fiber.Ctx) error {
-	var req ResetPasswordReq
-	if err := c.BodyParser(&req); err != nil {
-		return Error(c, NewRequestValidationError(ParseFailed, "body"))
-	}
+// ResetPasswordHandler handles password reset request.
+// if code in query is empty, it will send verification
+// code to the user's email for password reset.
+// if code in query is not empty, it will reset user password.
+func (s *AuthServer) ResetPasswordHandler(c *fiber.Ctx) error {
+	email := c.FormValue("email")
+	newPassword := c.FormValue("new_password")
+	newConfirmPassword := c.FormValue("new_confirm_password")
 
 	code := c.Query("code")
 	if code != "" {
-		if len(code) != 10 {
-			return Error(c, NewRequestValidationError(Invalid, "code"))
-		}
-		if !numberRegex.MatchString(code) {
-			return Error(c, NewRequestValidationError(Invalid, "code"))
-		}
-
-		tokenResult := <-s.TokenQuery.Find(code)
-		if tokenResult.Error != nil {
-			return Error(c, NewRequestValidationError(Invalid, "code"))
-		}
-
-		codeVerification, _ := tokenResult.Result.([]byte)
-		if codeVerification == nil {
-			return Error(c, NewRequestValidationError(Invalid, "code"))
-		}
-
-		extract := strings.Split(string(codeVerification), "|")
-		if extract[0] != code {
-			return Error(c, NewRequestValidationError(Invalid, "code"))
-		}
-
-		user, err := s.UserService.FindUserByEmail(c.Context(), extract[1])
+		err := s.UserService.ResetPassword(c.Context(), code, newPassword, newConfirmPassword)
 		if err != nil {
-			return Error(c, err)
+			return helper.Error(c, err)
 		}
-
-		err = user.ResetPassword(req.NewPassword, req.NewConfirmPassword)
-		if err != nil {
-			return Error(c, err)
-		}
-
-		err = <-s.UserCommand.UpdatePassword(c.Context(), &user)
-		if err != nil {
-			return Error(c, err)
-		}
-
-		err = <-s.TokenCommand.Delete(code)
-		if err != nil {
-			return Error(c, err)
-		}
-
 		return c.SendStatus(http.StatusOK)
 	}
 
-	if req.Email == "" {
-		return Error(c, NewRequestValidationError(Required, "email"))
-	}
-	if !mailRegex.MatchString(req.Email) {
-		return Error(c, NewRequestValidationError(Invalid, "email"))
-	}
-
-	key := random.Codes(10)
-	value := fmt.Sprintf("%s|%s", key, req.Email)
-
-	log.Println(value)
-
-	err := <-s.TokenCommand.Set(key, []byte(value), 30*time.Minute)
+	err := s.UserService.SendVerificationCode(c.Context(), email, "reset-password")
 	if err != nil {
-		return Error(c, err)
+		return helper.Error(c, err)
 	}
-
 	return c.SendStatus(http.StatusOK)
 }

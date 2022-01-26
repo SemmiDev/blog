@@ -1,8 +1,8 @@
-package command
+package repository
 
 import (
 	"context"
-	"github.com/SemmiDev/blog/internal/user/domain"
+	"github.com/SemmiDev/blog/internal/user/entity"
 	"time"
 )
 
@@ -12,11 +12,13 @@ type UserCommand interface {
 }
 
 type UserSaver interface {
-	Save(ctx context.Context, arg *domain.User) <-chan error
+	Save(ctx context.Context, arg *entity.User) <-chan error
 }
 
 type UserUpdater interface {
-	UpdatePassword(ctx context.Context, arg *domain.User) <-chan error
+	UpdatePassword(ctx context.Context, arg *entity.User) <-chan error
+	UpdateBio(ctx context.Context, arg *entity.User) <-chan error
+	UpdateImage(ctx context.Context, arg *entity.User) <-chan error
 }
 
 type TokenCommand interface {

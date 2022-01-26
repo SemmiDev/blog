@@ -1,65 +1,59 @@
-POST http://localhost:9090/auth/register
-Accept: application/json
-Content-Type: application/json
+###
+POST http://localhost:3030/auth/register
+Content-Type: application/x-www-form-urlencoded
 
-{
-  "email": "sammidev@gmail.com"
-}
+email=sammidev4@gmail.com
+
+###
+POST http://localhost:3030/auth/register?code=7494918234
+Content-Type: application/x-www-form-urlencoded
+
+name=Sammy&password=sammidev
+
+###
+POST http://localhost:3030/auth/authorize
+Content-Type: application/x-www-form-urlencoded
+
+email=sammidev4@gmail.com&password=sammidev123
 
 ###
 
-POST http://localhost:9090/auth/register?code=6782632645
-Accept: application/json
-Content-Type: application/json
+PUT http://localhost:3030/users/password/change
+Content-Type: application/x-www-form-urlencoded
+Authorization: Bearer v2.local.Pu8Kyq_C5K4c8lUBEfs6DV1y2m6u_z7PuAq8NyMu5Tiyreo2LfiWCJXbVKvXvS2R2qBGLCZNXfBEF8NXVZRaXHuyRfpxb7Pz6o9vMpgtrPD757EOcq3zUkqWU2X7vO6srQ-kxPTuC3JIZE0Vo1DX-k2jyPYjhNMtgFhCuRHiOMCnED9bkcGBLic3OwK55eZeEVMEvnjBOsUdLo0KDa3AakNpgLCJyMTViQwFVdgl16bg8QZdNyFp90LA7J9kXAUdOFhF4kuG7HD_q3qfyjpvyYhV1gh1fdU.bnVsbA
 
-{
-  "name": "sammidev",
-  "password": "sammidev"
-}
+old_password=sammidev&new_password=sammidev&new_confirm_password=sammidev
 
 ###
 
-POST http://localhost:9090/auth/authorize
-Accept: application/json
-Content-Type: application/json
+POST http://localhost:3030/auth/password/reset
+Content-Type: application/x-www-form-urlencoded
 
-{
-  "email": "sammidev@gmail.com",
-  "password": "sammidev"
-}
+email=sammidev4@gmail.com
 
 ###
 
-POST http://localhost:9090/users/password/change
-Accept: application/json
-Content-Type: application/json
-Authorization: Bearer v2.local.cqHx08rWVJG6v4JjS1RFlJmqfgvQWe6cfIYtcNJNEfSK4PlpK6eBvx9lc7Z0F4Y9LU_rgELF9eDIYtmxA1_nBZ2w5JjpKMD2zfvryQNI74Zcy2j_yBUx1slAY9lvYGmKG9i7sc1Ywf0J2UklkWzMBAOI09R4lCxghGYlRYrvd5KPh1T9OKay07B-V1xrq6kc8FybA74oq6oTd8L9lofbSOnqXEgX4vkB3ABQzVn2HdckdgKXYdELeGjwVDSPwn1RSKPLR6pYX58mEHKgfCBwFpqFTrlMmyY.bnVsbA
+POST http://localhost:3030/auth/password/reset?code=8696505146
+Content-Type: application/x-www-form-urlencoded
 
-{
-  "old_password": "sammidev",
-  "new_password": "sammidev123",
-  "new_confirm_password": "sammidev123"
-
-
-}
+new_password=sammidev123&new_confirm_password=sammidev123
 
 ###
+PUT http://localhost:3030/users/profile/bio
+Content-Type: application/x-www-form-urlencoded
+Authorization: Bearer v2.local.4uk4sUtJlEgVlRZiIuu3XCCcuM9GtLWp2j_mot4NJPztbH0NPj3zzTVR_5dNr9bUfjqpcCakkFgHGaKLjIvwcb8TaQtt5BMBNuSzAwuudMNOf81ewF43-teIsBRC573cX0p9LGFU43a0ffPXTsEM69ypXyFcgdE8sc7RG2n0ocaJMSnz8lg065ZmE_07D3f6_mSBSUz8PENQ84CqzBRX9qIviSboaepWittOCSR8yfkcq6H5NR_rr5iSwRPi1kXFM1Ia3wTc6-eJ6QB-0ESJsFoTeUfRgm7f.bnVsbA
 
-POST http://localhost:9090/auth/password/reset
-Accept: application/json
-Content-Type: application/json
+bio=aku suka sammy eh
 
-{
-  "email": "sammidev@gmail.com"
-}
 
 ###
+PUT http://localhost:3030/users/profile/image
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+Authorization: Bearer v2.local.4uk4sUtJlEgVlRZiIuu3XCCcuM9GtLWp2j_mot4NJPztbH0NPj3zzTVR_5dNr9bUfjqpcCakkFgHGaKLjIvwcb8TaQtt5BMBNuSzAwuudMNOf81ewF43-teIsBRC573cX0p9LGFU43a0ffPXTsEM69ypXyFcgdE8sc7RG2n0ocaJMSnz8lg065ZmE_07D3f6_mSBSUz8PENQ84CqzBRX9qIviSboaepWittOCSR8yfkcq6H5NR_rr5iSwRPi1kXFM1Ia3wTc6-eJ6QB-0ESJsFoTeUfRgm7f.bnVsbA
 
-POST http://localhost:9090/auth/password/reset?code=7108745620
-Accept: application/json
+--WebAppBoundary
+Content-Disposition: form-data; name="image"; filename="me.jpg"
 Content-Type: application/json
 
-{
-  "new_password": "sammidev123",
-  "new_confirm_password": "sammidev123"
-}
+< ./images/me.jpg
+--WebAppBoundary--

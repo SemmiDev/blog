@@ -4,6 +4,7 @@ import (
 	"time"
 )
 
+// User is will be used as response for get details of user.
 type User struct {
 	ID          string
 	Name        string
@@ -16,6 +17,7 @@ type User struct {
 	LastUpdated time.Time
 }
 
+// UserAuth it will be used as response for authentication.
 type UserAuth struct {
 	UserID      string `json:"user_id"`
 	Name        string `json:"name"`

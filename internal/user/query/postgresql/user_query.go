@@ -53,7 +53,7 @@ func (u UserQueryPostgresql) FindByEmail(ctx context.Context, email string) <-ch
 			if exists {
 				result <- query.Result{Error: errors.New("account not found")}
 			}
-			result <- query.Result{Error: errors.New("internal server error")}
+			result <- query.Result{Error: errors.New("internal server helper")}
 		}
 
 		userRead = storage.User{
@@ -98,7 +98,7 @@ func (u UserQueryPostgresql) FindByEmailAndPassword(ctx context.Context, email, 
 			if exists {
 				result <- query.Result{Error: errors.New("account not found")}
 			}
-			result <- query.Result{Error: errors.New("internal server error")}
+			result <- query.Result{Error: errors.New("internal server helper")}
 		}
 
 		err = bcrypt.CompareHashAndPassword(rowsData.Password, []byte(password))

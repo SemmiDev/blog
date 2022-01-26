@@ -16,38 +16,38 @@ import (
 )
 
 func main() {
-	// init the configurations
+	// set up the configurations.
 	LoadConfig(".")
 
-	// init the logger
+	// set up the logger.
 	zerolog.Log = zerolog.NewConsole(false)
 
-	// init the database pooling
-	dbPool, err := pgxpool.Connect(context.Background(), Config.DBSource)
+	// set up the database.
+	dbPool, err := pgxpool.Connect(context.Background(), Env.DBSource)
 	if err != nil {
 		zerolog.Log.Error().Interface("db connection", err).Send()
 	}
 	defer dbPool.Close()
 
-	// init the token manager
-	tokenMaker, err := token.NewPasetoMaker(Config.TokenSymmetricKey)
+	// set up the token manager.
+	tokenMaker, err := token.NewPasetoMaker(Env.TokenSymmetricKey)
 	if err != nil {
 		zerolog.Log.Error().Interface("token maker", err).Send()
 	}
 
-	// init the auth server
+	// set up the auth server.
 	authServer, err := userserver.NewAuthServer(dbPool, tokenMaker)
 	if err != nil {
 		zerolog.Log.Error().Interface("auth server", err).Send()
 	}
 
-	// init the user server
+	// set up the user server.
 	userServer, err := userserver.NewUserServer(dbPool, tokenMaker)
 	if err != nil {
 		zerolog.Log.Error().Interface("user server", err).Send()
 	}
 
-	// init the fiber app
+	// set up the fiber app.
 	app := fiber.New(
 		fiber.Config{
 			ReadTimeout:  time.Second * 5,
@@ -55,19 +55,19 @@ func main() {
 		},
 	)
 
-	// init the middlewares
+	// set up the middlewares.
 	app.Use(fLog.New())
 	app.Use(recover.New())
 	app.Use(cors.New())
 
-	// init the auth routes
+	// set up the auth routes.
 	authGroup := app.Group("/auth")
 	authServer.Mount(authGroup)
 
-	// init the user routes
+	// set up the user routes.
 	userGroup := app.Group("/users")
 	userServer.Mount(userGroup)
 
-	// start the app
-	log.Fatal(app.Listen(Config.ServerAddress))
+	// start the app on the server address port.
+	log.Fatal(app.Listen(Env.ServerAddress))
 }
